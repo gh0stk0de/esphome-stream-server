@@ -19,18 +19,18 @@ void StreamServerComponent::setup() {
     this->buf_ = std::unique_ptr<uint8_t[]>{new uint8_t[this->buf_size_]};
 
     struct sockaddr_storage bind_addr;
-if ESPHOME_VERSION_CODE >= VERSION_CODE(2023, 4, 0)
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2023, 4, 0)
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), this->port_);
-else
+#else
     socklen_t bind_addrlen = socket::set_sockaddr_any(reinterpret_cast<struct sockaddr *>(&bind_addr), sizeof(bind_addr), htons(this->port_));
-endif
+#endif
 
-if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
-    this->socket_ = socket::socket_ip_loop_monitored(SOCK_STREAM, PF_INET).release();
-else
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)    
+    this->socket_ = socket::socket_ip_loop_monitored(SOCK_STREAM, PF_INET).release();    
+#else
     this->socket_ = socket::socket_ip(SOCK_STREAM, PF_INET);
-endif
-
+#endif 
+      
     this->socket_->setblocking(false);
     this->socket_->bind(reinterpret_cast<struct sockaddr *>(&bind_addr), bind_addrlen);
     this->socket_->listen(8);
@@ -48,38 +48,44 @@ void StreamServerComponent::loop() {
 
 void StreamServerComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "Stream Server:");
-if ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
+
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 7, 0)
+    char address[64];
+    esphome::network::get_use_address_to(address);
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", address, this->port_);
+#elif ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
     ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address(), this->port_);
-else
+#else
     ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address().c_str(), this->port_);
-endif
-ifdef USE_BINARY_SENSOR
+#endif
+
+#ifdef USE_BINARY_SENSOR
     LOG_BINARY_SENSOR("  ", "Connected:", this->connected_sensor_);
-endif
-ifdef USE_SENSOR
+#endif
+#ifdef USE_SENSOR
     LOG_SENSOR("  ", "Connection count:", this->connection_count_sensor_);
-endif
+#endif
 }
 
 void StreamServerComponent::on_shutdown() {
-if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 3, 0)
     delete this->socket_;
-    this->socket_ = nullptr;
-endif
+    this->socket_ = nullptr;    
+#endif 
 
     for (const Client &client : this->clients_)
         client.socket->shutdown(SHUT_RDWR);
 }
 
 void StreamServerComponent::publish_sensor() {
-ifdef USE_BINARY_SENSOR
+#ifdef USE_BINARY_SENSOR
     if (this->connected_sensor_)
         this->connected_sensor_->publish_state(this->clients_.size() > 0);
-endif
-ifdef USE_SENSOR
+#endif
+#ifdef USE_SENSOR
     if (this->connection_count_sensor_)
         this->connection_count_sensor_->publish_state(this->clients_.size());
-endif
+#endif
 }
 
 void StreamServerComponent::accept() {
@@ -91,13 +97,13 @@ void StreamServerComponent::accept() {
 
     socket->setblocking(false);
 
-if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 1, 0)
+#if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 1, 0)
     std::string identifier = std::string{esphome::socket::SOCKADDR_STR_LEN, 0};
     auto identifier_span = std::span<char, esphome::socket::SOCKADDR_STR_LEN>(identifier.data(), identifier.size());
     identifier.resize(socket->getpeername_to(identifier_span));
-else
+#else
     std::string identifier = socket->getpeername();
-endif
+#endif
 
     this->clients_.emplace_back(std::move(socket), identifier, this->buf_head_);
     ESP_LOGD(TAG, "New client connected from %s", identifier.c_str());
