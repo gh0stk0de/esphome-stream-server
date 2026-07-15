@@ -1,5 +1,5 @@
 #include "stream_server.h"
-
+#include <span>
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
 #include "esphome/core/util.h"
@@ -50,8 +50,9 @@ void StreamServerComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "Stream Server:");
 
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 7, 0)
-    char address[64];
-    esphome::network::get_use_address_to(address);
+    char address[70];
+    auto address_span = std::span<char, 70>(address, sizeof(address));
+    esphome::network::get_use_address_to(address_span);
     ESP_LOGCONFIG(TAG, "  Address: %s:%u", address, this->port_);
 #elif ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
     ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address(), this->port_);
