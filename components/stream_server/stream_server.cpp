@@ -47,17 +47,15 @@ void StreamServerComponent::loop() {
     this->cleanup();
 }
 //changed char length switched to get_use_address_to as it was a breaking change. the was specifically to get an esp32 running gregmac/Genmon-ESP32-Serial-Bridge for generator monitoring.
-//attempting to future proof by getting string length rather than forcing it to be 70
+
 void StreamServerComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "Stream Server:");
 
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 7, 0)
-    std::array<char, esphome::socket::SOCKADDR_STR_LEN> address{};
-    auto address_span = std::span<char, esphome::socket::SOCKADDR_STR_LEN>(
-        address.data(), address.size()
-    );
+    char address[70];
+    auto address_span = std::span<char, 70>(address, sizeof(address));
     esphome::network::get_use_address_to(address_span);
-    ESP_LOGCONFIG(TAG, "  Address: %s:%u", address.data(), this->port_);
+    ESP_LOGCONFIG(TAG, "  Address: %s:%u", address, this->port_);
 #elif ESPHOME_VERSION_CODE >= VERSION_CODE(2025, 11, 0)
     ESP_LOGCONFIG(TAG, "  Address: %s:%u", esphome::network::get_use_address(), this->port_);
 #else
