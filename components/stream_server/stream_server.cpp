@@ -1,4 +1,5 @@
 #include "stream_server.h"
+#include <array>
 #include <span>
 #include "esphome/core/helpers.h"
 #include "esphome/core/log.h"
@@ -48,7 +49,7 @@ void StreamServerComponent::loop() {
 
 void StreamServerComponent::dump_config() {
     ESP_LOGCONFIG(TAG, "Stream Server:");
-
+//changed char length switched to get_use_address_to as it was a breaking change. the was specifically to get an esp32 running gregmac/Genmon-ESP32-Serial-Bridge for generator monitoring.
 #if ESPHOME_VERSION_CODE >= VERSION_CODE(2026, 7, 0)
     char address[70];
     auto address_span = std::span<char, 70>(address, sizeof(address));
